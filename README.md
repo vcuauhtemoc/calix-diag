@@ -13,4 +13,7 @@ poetry install
 ```
 ## Usage:
 
-`
+```
+poetry shell
+calix-diag [jump_username] [olt hostname] [ONU UID]
+```
