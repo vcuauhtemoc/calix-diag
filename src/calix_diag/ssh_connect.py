@@ -12,7 +12,10 @@ def connect(k_path,jumphost,t_host,user,ont):
         f"show mac on-ont-port {ont}\n",
         f"show lldp neighbor\n  "
     ]
-    ssh_key = paramiko.Ed25519Key(filename=k_path)
+    if "25519" in k_path:
+        ssh_key = paramiko.Ed25519Key(filename=k_path)
+    else:
+        ssh_key = paramiko.RSAKey(filename=k_path)
     jump_client = paramiko.SSHClient()
     jump_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     jump_client.connect(
