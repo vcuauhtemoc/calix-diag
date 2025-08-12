@@ -14,6 +14,8 @@ dependencies = [
 [tool.poetry]
 packages = [{include = "calix_diag", from = "src"}]
 
+[tool.poetry.scripts]
+calix-diag = "calix_diag.__main__:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

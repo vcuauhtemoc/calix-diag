@@ -2,4 +2,4 @@ poetry.lock
 .python-version
 tests/
 .venv/
-README.md
+src/calix_diag/__pycache__/
