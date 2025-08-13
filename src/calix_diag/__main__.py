@@ -1,6 +1,6 @@
 import argparse
 import pathlib as pl
-from .ssh_connect import connect
+from .ssh_connect import jump_connect,calix_login,run_cmd
 
 def main(argv=None):
     key_path = f"{pl.Path.home()}/.ssh/id_ed25519"
@@ -14,7 +14,21 @@ def main(argv=None):
     hostname = args.olthostname
     uid = args.uid
     user = args.user
-    connect(key_path,"jump-jfk01.as46450.net",hostname,user,uid)
+    diag_cmds = [
+        f"show ont {uid}",
+        f"show ont {uid} detail",
+        f"show ont {uid} summary",
+        f"show pm ont {uid} 1-day current",
+        f"show pm ont-port {uid}/g1 1-day current",
+        f"show mac on-ont-port {uid}",
+        f"show lldp neighbor",
+        f"show log alarm"
+    ]
+    jumphost = jump_connect(key_path,"jump-jfk01.as46450.net",user)
+    ssh_interact = calix_login(jumphost,hostname)
+    for e in diag_cmds:
+        run_cmd(e,ssh_interact)
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
