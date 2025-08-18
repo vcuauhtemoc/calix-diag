@@ -31,7 +31,8 @@ def main(argv=None):
     jumphost = jump_connect_2("jump-jfk01.as46450.net",user,hostname)
     # jumphost = jump_connect(key_path,"jump-jfk01.as46450.net",user)
     calix_login(jumphost,hostname)
-    run_cmd(cmd,jumphost)
+    cmd_output = run_cmd(cmd,jumphost)
+    print(cmd_output)
     # for e in diag_cmds:
     #     run_cmd(e,jumphost)
     calix_logout(jumphost)

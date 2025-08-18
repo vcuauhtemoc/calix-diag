@@ -42,12 +42,17 @@ def calix_logout(cx_prompt: pxssh.pxssh):
     return cx_prompt
 
 
-def run_cmd(cmd:str,interact:pxssh.pxssh):
+def run_cmd(cmd:str,interact:pxssh.pxssh) -> str:
+    result = ""
+    interact.send("\r\n")
+    interact.expect(calix_prompt, timeout=10)
     interact.sendline(cmd)
-    p_match = interact.expect([calix_prompt,r"\r\n"], timeout=10)
-    print(interact.before.decode("utf-8"))
+    print("running command...",end="")
+    p_match = interact.expect([calix_prompt,"--MORE--"], timeout=10)
+    result += interact.before.decode("utf-8")
     while p_match == 1:
+        print(".",end="")
         interact.send(" ")
-        print(interact.before.decode("utf-8"))        
-        interact.expect([calix_prompt,"\r\n"], timeout=10)
-    return None
+        p_match = interact.expect([calix_prompt,"--MORE--"], timeout=10)
+        result += interact.before.decode("utf-8")      
+    return result
