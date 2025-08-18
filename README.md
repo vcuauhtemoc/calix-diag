@@ -19,5 +19,10 @@ poetry install
 
 ```
 poetry shell
-calix-diag [jump_username] [olt hostname] [ONU UID]
+
+Run a command on the OLT and get output:
+calix-diag [jump_username] [olt hostname] -c "command"
+
+Get the ONT port from UID:
+calix-diag [jump_username] [olt hostname] -g UID
 ```

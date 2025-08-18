@@ -1,25 +1,12 @@
 import paramiko 
 from paramiko_expect import SSHClientInteraction
 import sys
+import re
 from types import SimpleNamespace
 from pexpect import pxssh
 calix_prompt = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
 
-def jump_connect(k_path: str,jumphost: str,user: str) -> paramiko.SSHClient:
-    if "25519" in k_path:
-        ssh_key = paramiko.Ed25519Key(filename=k_path)
-    else:
-        ssh_key = paramiko.RSAKey(filename=k_path)
-    jump_client = paramiko.SSHClient()
-    jump_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    jump_client.connect(
-        hostname=jumphost,
-        username=user,
-        pkey=ssh_key
-    )
-    return jump_client
-
-def jump_connect_2(jumphost: str,user: str,t_host):
+def jump_connect(jumphost: str,user: str,t_host):
     jump_client = pxssh.pxssh()
     try:
         jump_client.login(jumphost,user,ssh_key=True)
@@ -34,7 +21,6 @@ def jump_connect_2(jumphost: str,user: str,t_host):
 def calix_login(cx_prompt: pxssh.pxssh,t_host):
     cx_prompt.sendline(f"logmein {t_host}\n")
     cx_prompt.expect(calix_prompt,timeout=5)
-    print(f"\nLogged into {t_host}.\n")
     return cx_prompt
 
 def calix_logout(cx_prompt: pxssh.pxssh):
@@ -47,12 +33,18 @@ def run_cmd(cmd:str,interact:pxssh.pxssh) -> str:
     interact.send("\r\n")
     interact.expect(calix_prompt, timeout=10)
     interact.sendline(cmd)
-    print("running command...",end="")
-    p_match = interact.expect([calix_prompt,"--MORE--"], timeout=10)
+    p_match = interact.expect([calix_prompt,"--MORE--"], timeout=15)
     result += interact.before.decode("utf-8")
     while p_match == 1:
-        print(".",end="")
         interact.send(" ")
         p_match = interact.expect([calix_prompt,"--MORE--"], timeout=10)
-        result += interact.before.decode("utf-8")      
+        result += interact.before.decode("utf-8")
+    print("")      
     return result
+
+def pon_port_info(interact:pxssh.pxssh,uid):
+    pon_pattern = re.compile(r"PON port\s+:\s+(\d+\/\d+)\s*$",re.MULTILINE)
+    detail_output = run_cmd(f"show ont {uid} detail", interact)
+    pon: re.Match = pon_pattern.search(detail_output)
+    realtime_data = run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact)
+    print(realtime_data)
