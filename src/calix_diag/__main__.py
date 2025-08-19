@@ -1,8 +1,14 @@
 import argparse
 import pathlib as pl
 from .ssh_connect import jump_connect,calix_login,calix_logout,run_cmd,pon_port_info
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+)
 
 def main(argv=None):
+
     key_path = f"{pl.Path.home()}/.ssh/id_ed25519"
     if not pl.Path(key_path).is_file():
         key_path = f"{pl.Path.home()}/.ssh/id_rsa"
@@ -11,6 +17,7 @@ def main(argv=None):
     parser.add_argument("olthostname", help="OLT hostname")
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
     hostname = args.olthostname
     user = args.user
@@ -26,13 +33,20 @@ def main(argv=None):
     #     f"show lldp neighbor",
     #     f"show log alarm"
     # ]
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
     with jump_connect("jump-jfk01.as46450.net",user) as jumphost:
         calix_login(jumphost,hostname)
         try:
             if args.get_gpon:
-                pon_port_info(jumphost,uid)
+                print(pon_port_info(jumphost,uid))
+                calix_logout(jumphost)
             if args.cmd:
                 print(run_cmd(cmd,jumphost))
+                calix_logout(jumphost)
         finally:
             calix_logout(jumphost)
 

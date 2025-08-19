@@ -1,34 +1,40 @@
 import re
 from contextlib import contextmanager
 from pexpect import pxssh
+import logging
 
 calix_prompt = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
+log = logging.getLogger(__name__)
 
 @contextmanager
 def jump_connect(jumphost: str,user: str):
+    log.debug(f"logging into jumphost...")
     jump_client = pxssh.pxssh()
     try:
         jump_client.login(jumphost,user,ssh_key=True)
-        jump_client.prompt(timeout=10)
+        log.debug(jump_client.before.decode("utf-8"))
+        log.debug("Success")
         yield jump_client
     finally:
         try:
+            log.debug("Logging out of jumphost...")
             jump_client.logout()
+            log.debug("Success")
         except Exception:
             pass
 
         
 def calix_login(cx_prompt: pxssh.pxssh,t_host: str):
+    log.debug(f"logging into {t_host}...")
     cx_prompt.sendline(f"logmein {t_host}\n")
     session = cx_prompt.expect(calix_prompt,timeout=5)
     if session is None:
         raise RuntimeError(f"cannot log into OLT {t_host}.")
-    return cx_prompt
+    log.debug("Success")
 
 
 def calix_logout(cx_prompt: pxssh.pxssh):
     cx_prompt.sendline("exit")
-    return cx_prompt
 
 
 def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
@@ -38,6 +44,7 @@ def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
     if is_prompt is None:
         raise TimeoutError("CLI not responding")
     interact.sendline(cmd)
+    log.debug(f"Running command '{cmd}'")
     result += interact.before.decode("utf-8")
     while True:
         p_match = interact.expect([calix_prompt,"--MORE--"], timeout=timeout)
