@@ -4,9 +4,10 @@ Requires installation of poetry. from your terminal, run:
 cd ~/
 curl -sSL https://install.python-poetry.org | python3 -
 ```
-Add the following to your shell RC file (.zshrc,.bashrc, etc)
+Add the following to your shell RC file (.zshrc,.bashrc, etc):
 ```
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$(poetry env info --path)/bin:$PATH"
 ```
 
 Once installed, clone the repo, navigate to the project folder and install the script:
