@@ -3,49 +3,67 @@ from contextlib import contextmanager
 from pexpect import pxssh
 import logging
 
-calix_prompt = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
+JUMP_PROMPT = r"[>$#]\s*$" 
+CALIX_PROMPT = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
+PAGER = r"--MORE--"
+
 log = logging.getLogger(__name__)
 
 @contextmanager
-def jump_connect(jumphost: str,user: str):
+def jump_session(jumphost: str,user: str):
     log.debug(f"logging into jumphost...")
-    jump_client = pxssh.pxssh()
+    s = pxssh.pxssh()
+    s.login(jumphost,user,ssh_key=True)
     try:
-        jump_client.login(jumphost,user,ssh_key=True)
-        # log.debug(jump_client.before.decode("utf-8"))
         log.debug("Success")
-        yield jump_client
+        yield s
     finally:
-        log.debug("Logging out of jumphost...")
-        try:
-            jump_client.sendline("exit") # to back out of OLT first
-            jump_client.prompt()
-            jump_client.logout()
-            log.debug("Success")
-        except Exception as e:
-            log.debug(f"Error while logging out: {e}")
+        log.debug("Logging out of OLT...")
+        for _ in range(3):
+            s.sendline("")  # nudge; flush any pager/prompt debris
+            idx = s.expect([JUMP_PROMPT, CALIX_PROMPT, PAGER], timeout=3)
+            if idx == 0:      # At jumphost prompt
+                log.debug("logged out.")
+                break
+            if idx == 1:      # Still at Calix prompt → send exit
+                s.sendline("exit")
+            elif idx == 2:    # Pager → advance
+                s.send("q")
+            else:
+                s.sendline("exit")
 
-        
-def calix_login(cx_prompt: pxssh.pxssh,t_host: str):
+@contextmanager
+def calix_session(cx_prompt: pxssh.pxssh,t_host: str):
     log.debug(f"logging into {t_host}...")
     cx_prompt.sendline(f"logmein {t_host}\n")
-    session = cx_prompt.expect(calix_prompt,timeout=5)
+    session = cx_prompt.expect(CALIX_PROMPT,timeout=5)
     if session is None:
         raise RuntimeError(f"cannot log into OLT {t_host}.")
-    log.debug("Success")
- 
+    try:
+        yield cx_prompt
+        log.debug("Success")
+    finally:
+        log.debug("Exiting OLT session")
+        for _ in range(3):
+            cx_prompt.sendline("exit")
+            idx = cx_prompt.expect([JUMP_PROMPT, CALIX_PROMPT, PAGER], timeout=3)
+            if idx == 0:
+                break
+            if idx == 2:
+                cx_prompt.send(" ")
+        # Final attempt to sync on jumphost prompt
 
 def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
     result = ""
     interact.send("\r\n")
-    is_prompt = interact.expect(calix_prompt, timeout=10)
+    is_prompt = interact.expect(CALIX_PROMPT, timeout=10)
     if is_prompt is None:
         raise TimeoutError("CLI not responding")
     interact.sendline(cmd)
     log.debug(f"Running command '{cmd}'")
     result += interact.before.decode("utf-8")
     while True:
-        p_match = interact.expect([calix_prompt,"--MORE--"], timeout=timeout)
+        p_match = interact.expect([CALIX_PROMPT,"--MORE--"], timeout=timeout)
         result += interact.before.decode("utf-8")
         if p_match == 0:
             break
@@ -60,8 +78,8 @@ def pon_port_info(interact:pxssh.pxssh,uid):
     pon_pattern = re.compile(r"PON port\s+:\s+(\d+\/\d+)\s*$",re.MULTILINE)
     detail_output = run_cmd(f"show ont {uid} detail", interact)
     log.debug(f"ONU detail output: {detail_output}")
-    # pon = pon_pattern.search(detail_output)
-    # if pon is None: 
-    #     raise ValueError(f"PON port not found in output for uid={uid}")
-    # return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
+    pon = pon_pattern.search(detail_output)
+    if pon is None: 
+        raise ValueError(f"PON port not found in output for uid={uid}")
+    return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
     

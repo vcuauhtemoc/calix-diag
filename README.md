@@ -1,6 +1,7 @@
 ## Installation
-Requires installation of poetry. from your CLI, and add the source line to your shell RC file :
+Requires installation of poetry. from your terminal, run:
 ```
+cd ~/
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 Add the following to your shell RC file (.zshrc,.bashrc, etc)

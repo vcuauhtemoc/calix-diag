@@ -1,6 +1,6 @@
 import argparse
 import pathlib as pl
-from .ssh_connect import jump_connect,calix_login,run_cmd,pon_port_info
+from .ssh_connect import jump_session,calix_session,run_cmd,pon_port_info
 import logging
 
 logging.basicConfig(
@@ -38,16 +38,12 @@ def main(argv=None):
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    with jump_connect("jump-jfk01.as46450.net",user) as jumphost:
-        calix_login(jumphost,hostname)
-        try:
+    with jump_session("jump-jfk01.as46450.net",user) as jumphost:
+        with calix_session(jumphost,hostname) as s:
             if args.get_gpon:
-                print(pon_port_info(jumphost,uid))
+                print(pon_port_info(s,uid))
             if args.cmd:
-                print(run_cmd(cmd,jumphost))
-        finally:
-            pass
-
+                print(run_cmd(cmd,s))
 
 
 if __name__ == "__main__":
