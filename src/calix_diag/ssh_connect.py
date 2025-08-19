@@ -12,16 +12,18 @@ def jump_connect(jumphost: str,user: str):
     jump_client = pxssh.pxssh()
     try:
         jump_client.login(jumphost,user,ssh_key=True)
-        log.debug(jump_client.before.decode("utf-8"))
+        # log.debug(jump_client.before.decode("utf-8"))
         log.debug("Success")
         yield jump_client
     finally:
+        log.debug("Logging out of jumphost...")
         try:
-            log.debug("Logging out of jumphost...")
+            jump_client.sendline("exit") # to back out of OLT first
+            jump_client.prompt()
             jump_client.logout()
             log.debug("Success")
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"Error while logging out: {e}")
 
         
 def calix_login(cx_prompt: pxssh.pxssh,t_host: str):
@@ -31,11 +33,7 @@ def calix_login(cx_prompt: pxssh.pxssh,t_host: str):
     if session is None:
         raise RuntimeError(f"cannot log into OLT {t_host}.")
     log.debug("Success")
-
-
-def calix_logout(cx_prompt: pxssh.pxssh):
-    cx_prompt.sendline("exit")
-
+ 
 
 def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
     result = ""
@@ -54,15 +52,16 @@ def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
         if p_match == 1:
             interact.send(" ")
         else:
-            raise TimeoutError(f"Timed out while running {cmd}")     
+            raise TimeoutError(f"Timed out while running {cmd}")
     return result
 
 
 def pon_port_info(interact:pxssh.pxssh,uid):
     pon_pattern = re.compile(r"PON port\s+:\s+(\d+\/\d+)\s*$",re.MULTILINE)
     detail_output = run_cmd(f"show ont {uid} detail", interact)
-    pon = pon_pattern.search(detail_output)
-    if pon is None: 
-        raise ValueError(f"PON port not found in output for uid={uid}")
-    return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
+    log.debug(f"ONU detail output: {detail_output}")
+    # pon = pon_pattern.search(detail_output)
+    # if pon is None: 
+    #     raise ValueError(f"PON port not found in output for uid={uid}")
+    # return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
     
