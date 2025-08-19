@@ -1,7 +1,6 @@
 import argparse
 import pathlib as pl
 from .ssh_connect import jump_connect,calix_login,calix_logout,run_cmd,pon_port_info
-import time
 
 def main(argv=None):
     key_path = f"{pl.Path.home()}/.ssh/id_ed25519"
@@ -27,17 +26,15 @@ def main(argv=None):
     #     f"show lldp neighbor",
     #     f"show log alarm"
     # ]
-    jumphost = jump_connect("jump-jfk01.as46450.net",user,hostname)
-    calix_login(jumphost,hostname)
-    if args.get_gpon:
-        pon_port_info(jumphost,uid)
-
-    if args.cmd:
-        cmd_output = run_cmd(cmd,jumphost)
-        print(cmd_output)
-        # for e in diag_cmds:
-        #     run_cmd(e,jumphost)
-        calix_logout(jumphost)
+    with jump_connect("jump-jfk01.as46450.net",user) as jumphost:
+        calix_login(jumphost,hostname)
+        try:
+            if args.get_gpon:
+                pon_port_info(jumphost,uid)
+            if args.cmd:
+                print(run_cmd(cmd,jumphost))
+        finally:
+            calix_logout(jumphost)
 
 
 if __name__ == "__main__":
