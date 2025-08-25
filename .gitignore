@@ -3,3 +3,4 @@ poetry.lock
 tests/
 .venv/
 src/calix_diag/__pycache__/
+dist/

@@ -1,8 +1,7 @@
 import argparse
 import pathlib as pl
-from .ssh_connect import jump_session,calix_session,run_cmd,pon_port_info
 import logging
-
+from .ssh_connect import *
 logging.basicConfig(
     level=logging.DEBUG,
 )
@@ -16,13 +15,15 @@ def main(argv=None):
     parser.add_argument("user", help="Your jumphost username")
     parser.add_argument("olthostname", help="OLT hostname")
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
+    parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting")
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
     hostname = args.olthostname
     user = args.user
     cmd = args.cmd
-    uid = args.get_gpon
+    g_uid = args.get_gpon
+    t_uid = args.tech_support
     # diag_cmds = [
     #     f"show ont {uid}",
     #     f"show ont {uid} detail",
@@ -41,9 +42,12 @@ def main(argv=None):
     with jump_session("jump-jfk01.as46450.net",user) as jumphost:
         with calix_session(jumphost,hostname) as s:
             if args.get_gpon:
-                print(pon_port_info(s,uid))
+                print(pon_port_info(s,g_uid))
             if args.cmd:
                 print(run_cmd(cmd,s))
+            if args.tech_support:
+                tech_support(s,t_uid)
+
 
 
 if __name__ == "__main__":

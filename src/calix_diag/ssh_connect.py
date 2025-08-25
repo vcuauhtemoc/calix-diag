@@ -6,6 +6,7 @@ import logging
 JUMP_PROMPT = r"[>$#]\s*$" 
 CALIX_PROMPT = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
 PAGER = r"--MORE--"
+HOSTKEY_CHECK = "Are you sure you want to continue connecting (yes/no)?"
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +37,9 @@ def jump_session(jumphost: str,user: str):
 def calix_session(cx_prompt: pxssh.pxssh,t_host: str):
     log.debug(f"logging into {t_host}...")
     cx_prompt.sendline(f"logmein {t_host}\n")
-    session = cx_prompt.expect(CALIX_PROMPT,timeout=5)
+    session = cx_prompt.expect([CALIX_PROMPT,HOSTKEY_CHECK],timeout=5)
+    if session == 1:
+        cx_prompt.sendline("yes")
     if session is None:
         raise RuntimeError(f"cannot log into OLT {t_host}.")
     try:
@@ -82,4 +85,20 @@ def pon_port_info(interact:pxssh.pxssh,uid):
     if pon is None: 
         raise ValueError(f"PON port not found in output for uid={uid}")
     return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
+
+def tech_support(interact:pxssh.pxssh,uid):
+    diag_cmds = [
+        f"show ont {uid}",
+        f"show ont {uid} detail",
+        f"show ont {uid} summary",
+        f"show pm ont {uid} 1-day current",
+        f"show pm ont-port {uid}/g1 1-day current",
+        f"show mac on-ont-port {uid}",
+        f"show alarm omit non-svc-affecting"
+    ]
+    for cmd in diag_cmds:
+        print(run_cmd(cmd,interact))
+        log.debug(f"exited run_cmd() for {cmd}.")
+    print(pon_port_info(interact,uid))
+    return None
     
