@@ -1,29 +1,21 @@
 ## Installation
-Requires installation of poetry and pipx. from your terminal, run:
+Requires installation of pipx. from your terminal, run:
 ```
-cd ~/
-curl -sSL https://install.python-poetry.org | python3 -
-
 brew install pipx
+pipx ensurepath   # re-open your shell after this
 ```
-And add the following to your shell RC file (.zshrc,.bashrc, etc):
+Install the script:
 ```
-export PATH="$HOME/.local/bin:$PATH"
+pipx install git+https://github.com/vcuauhtemoc/calix-diag.git
 ```
 
-Once installed, clone the repo, navigate to the project folder and install the script:
+To update:
 ```
-cd ~/
-git clone git@github.com:vcuauhtemoc/calix-diag.git
-cd calix-diag
-poetry install
-poetry build
-pipx install dist/*.whl
+pipx upgrade calix-diag
 ```
 ## Usage:
 
 ```
-
 Run a command on the OLT and get output:
 calix-diag [jump_username] [olt hostname] -c "command"
 

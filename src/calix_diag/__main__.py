@@ -1,6 +1,7 @@
 import argparse
 import pathlib as pl
 import logging
+from socket import gethostname
 from .ssh_connect import *
 logging.basicConfig(
     level=logging.DEBUG,
@@ -15,8 +16,8 @@ def main(argv=None):
     parser.add_argument("user", help="Your jumphost username")
     parser.add_argument("olthostname", help="OLT hostname")
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
-    parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting")
-    parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU")
+    parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting",metavar="UID")
+    parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU",metavar="UID")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
     hostname = args.olthostname
@@ -34,19 +35,25 @@ def main(argv=None):
     #     f"show lldp neighbor",
     #     f"show log alarm"
     # ]
+
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
-
-    with jump_session("jump-jfk01.as46450.net",user) as jumphost:
-        with calix_session(jumphost,hostname) as s:
-            if args.get_gpon:
-                print(pon_port_info(s,g_uid))
-            if args.cmd:
-                print(run_cmd(cmd,s))
-            if args.tech_support:
-                tech_support(s,t_uid)
+    hostname = gethostname()
+    if hostname == "jump-jfk01.as46450.net":
+        log.debug(hostname)
+        # potentially allow this to be run directly in the jumphost.
+        # would require reworking the functions to not use pxssh
+    else:
+        with jump_session("jump-jfk01.as46450.net",user) as jumphost:
+            with calix_session(jumphost,hostname) as s:
+                if args.get_gpon:
+                    print(pon_port_info(s,g_uid))
+                if args.cmd:
+                    print(run_cmd(cmd,s))
+                if args.tech_support:
+                    tech_support(s,t_uid)
 
 
 
