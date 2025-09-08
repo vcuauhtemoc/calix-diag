@@ -1,6 +1,7 @@
 import re
 from contextlib import contextmanager
-from pexpect import pxssh
+from pexpect import pxssh,TIMEOUT
+import pexpect
 import logging
 
 JUMP_PROMPT = r"[>$#]\s*$" 
@@ -21,14 +22,14 @@ def jump_session(jumphost: str,user: str):
     finally:
         log.debug("Logging out of OLT...")
         for _ in range(3):
-            s.sendline("")  # nudge; flush any pager/prompt debris
+            s.sendline("")  
             idx = s.expect([JUMP_PROMPT, CALIX_PROMPT, PAGER], timeout=3)
             if idx == 0:      # At jumphost prompt
                 log.debug("logged out.")
                 break
-            if idx == 1:      # Still at Calix prompt → send exit
+            if idx == 1:     
                 s.sendline("exit")
-            elif idx == 2:    # Pager → advance
+            if idx == 2:
                 s.send("q")
             else:
                 s.sendline("exit")
@@ -54,9 +55,8 @@ def calix_session(cx_prompt: pxssh.pxssh,t_host: str):
                 break
             if idx == 2:
                 cx_prompt.send(" ")
-        # Final attempt to sync on jumphost prompt
 
-def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
+def run_cmd(cmd:str,interact:pxssh.pxssh,cmd_timeout=10) -> str:
     result = ""
     interact.send("\r\n")
     is_prompt = interact.expect(CALIX_PROMPT, timeout=10)
@@ -66,14 +66,16 @@ def run_cmd(cmd:str,interact:pxssh.pxssh,timeout=10) -> str:
     log.debug(f"Running command '{cmd}'")
     result += interact.before.decode("utf-8")
     while True:
-        p_match = interact.expect([CALIX_PROMPT,"--MORE--"], timeout=timeout)
+        p_match = interact.expect([CALIX_PROMPT,"--MORE--"], timeout=cmd_timeout)
         result += interact.before.decode("utf-8")
         if p_match == 0:
             break
         if p_match == 1:
             interact.send(" ")
-        else:
+        if p_match == 2:
             raise TimeoutError(f"Timed out while running {cmd}")
+        # else:
+        #     raise Exception(f"command failed: {cmd}")
     return result
 
 
@@ -84,7 +86,7 @@ def pon_port_info(interact:pxssh.pxssh,uid):
     pon = pon_pattern.search(detail_output)
     if pon is None: 
         raise ValueError(f"PON port not found in output for uid={uid}")
-    return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,timeout=20)
+    return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,cmd_timeout=20)
 
 def tech_support(interact:pxssh.pxssh,uid):
     diag_cmds = [
@@ -92,9 +94,10 @@ def tech_support(interact:pxssh.pxssh,uid):
         f"show ont {uid} detail",
         f"show ont {uid} summary",
         f"show pm ont {uid} 1-day current",
+        f"show ont-port {uid}/g1",
         f"show pm ont-port {uid}/g1 1-day current",
         f"show mac on-ont-port {uid}",
-        f"show alarm omit non-svc-affecting"
+        f"show log alarm"
     ]
     for cmd in diag_cmds:
         print(run_cmd(cmd,interact))

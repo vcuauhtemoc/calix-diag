@@ -20,7 +20,7 @@ def main(argv=None):
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU",metavar="UID")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
-    hostname = args.olthostname
+    olt = args.olthostname
     user = args.user
     cmd = args.cmd
     g_uid = args.get_gpon
@@ -47,7 +47,7 @@ def main(argv=None):
         # would require reworking the functions to not use pxssh
     else:
         with jump_session("jump-jfk01.as46450.net",user) as jumphost:
-            with calix_session(jumphost,hostname) as s:
+            with calix_session(jumphost,olt) as s:
                 if args.get_gpon:
                     print(pon_port_info(s,g_uid))
                 if args.cmd:
