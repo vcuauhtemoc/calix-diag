@@ -15,7 +15,7 @@ def main(argv=None):
         key_path = f"{pl.Path.home()}/.ssh/id_rsa"
     parser = argparse.ArgumentParser()
     parser.add_argument("olthostname", help="OLT hostname")
-    parser.add_argument("user", help="Your jumphost username",required=False)
+    parser.add_argument("-u", "--user", help="Your jumphost username",required=False)
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
     parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting",metavar="UID")
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU",metavar="UID")
