@@ -1,6 +1,7 @@
 import argparse
 import pathlib as pl
 import logging
+import pexpect
 from socket import gethostname
 from .ssh_connect import *
 logging.basicConfig(
@@ -8,7 +9,7 @@ logging.basicConfig(
 )
 
 def main(argv=None):
-
+    p = pl.Path('.')
     key_path = f"{pl.Path.home()}/.ssh/id_ed25519"
     if not pl.Path(key_path).is_file():
         key_path = f"{pl.Path.home()}/.ssh/id_rsa"
@@ -42,7 +43,14 @@ def main(argv=None):
         logging.getLogger().setLevel(logging.INFO)
     hostname = gethostname()
     if hostname == "jump-jfk01.as46450.net":
-        log.debug(hostname)
+        jumphost = pexpect.spawn("/bin/bash")
+        with calix_session(jumphost,olt) as s:
+            if args.get_gpon:
+                print(pon_port_info(s,g_uid))
+            if args.cmd:
+                print(run_cmd(cmd,s))
+            if args.tech_support:
+                tech_support(s,t_uid)
         # potentially allow this to be run directly in the jumphost.
         # would require reworking the functions to not use pxssh
     else:

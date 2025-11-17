@@ -104,4 +104,3 @@ def tech_support(interact:pxssh.pxssh,uid):
         log.debug(f"exited run_cmd() for {cmd}.")
     print(pon_port_info(interact,uid))
     return None
-    
