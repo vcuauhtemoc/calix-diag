@@ -14,8 +14,8 @@ def main(argv=None):
     if not pl.Path(key_path).is_file():
         key_path = f"{pl.Path.home()}/.ssh/id_rsa"
     parser = argparse.ArgumentParser()
-    parser.add_argument("user", help="Your jumphost username")
     parser.add_argument("olthostname", help="OLT hostname")
+    parser.add_argument("user", help="Your jumphost username",required=False)
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
     parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting",metavar="UID")
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU",metavar="UID")
@@ -42,6 +42,7 @@ def main(argv=None):
     else:
         logging.getLogger().setLevel(logging.INFO)
     hostname = gethostname()
+
     if hostname == "jump-jfk01.as46450.net":
         jumphost = pexpect.spawn("/bin/bash")
         with calix_session(jumphost,olt) as s:
