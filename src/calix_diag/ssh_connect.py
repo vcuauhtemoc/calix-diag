@@ -5,7 +5,8 @@ import pexpect
 import logging
 
 JUMP_PROMPT = r"[>$#]\s*$" 
-CALIX_PROMPT = r"[A-Za-z]{3}\d{2}\-[A-Za-z]{3}\d{2}\>\s*$"
+CALIX_PROMPT = r"[A-Za-z]{3}\d{2}\(?:-|\.)[A-Za-z]{3}\d{2}\>\s*$"
+CALIX_PROMPT_NEW = r""
 PAGER = r"--MORE--"
 HOSTKEY_CHECK = "Are you sure you want to continue connecting (yes/no)?"
 
