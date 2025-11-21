@@ -2,6 +2,8 @@ import argparse
 import pathlib as pl
 import logging
 import pexpect
+from pprint import pprint
+import csv
 from socket import gethostname
 from .ssh_connect import *
 logging.basicConfig(
@@ -19,6 +21,7 @@ def main(argv=None):
     parser.add_argument("-c", "--cmd",help="command to execute on OLT")
     parser.add_argument("-t", "--tech-support", help="get ONU/OLT info for standard trobleshooting",metavar="UID")
     parser.add_argument("-g", "--get-gpon", help="get gpon port info for ONU",metavar="UID")
+    parser.add_argument("--csv", help="feed a CSV with multiple OLTs and GPON ports")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
     olt = args.olthostname
@@ -26,6 +29,7 @@ def main(argv=None):
     cmd = args.cmd
     g_uid = args.get_gpon
     t_uid = args.tech_support
+    csv_file = args.csv
     # diag_cmds = [
     #     f"show ont {uid}",
     #     f"show ont {uid} detail",
@@ -41,6 +45,13 @@ def main(argv=None):
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
+
+    if args.csv:
+        with open(csv_file) as csvfile:
+            csvreader = csv.reader(csvfile)
+            for row in csvreader:
+                print(row)
+
     hostname = gethostname()
 
     if hostname == "jump-jfk01.as46450.net":
@@ -52,10 +63,26 @@ def main(argv=None):
                 print(run_cmd(cmd,s))
             if args.tech_support:
                 tech_support(s,t_uid)
+
         # potentially allow this to be run directly in the jumphost.
         # would require reworking the functions to not use pxssh
     else:
+        olt_list = {}
+        if args.csv:
+            with open(csv_file) as csvfile:
+                csvreader = csv.reader(csvfile)
+                for row in csvreader:
+                    if not olt_list.get(row[0]):
+                        olt_list[row[0]] = [row[1]]
+                    else:
+                        olt_list[row[0]].append(row[1])
+
         with jump_session("jump-jfk01.as46450.net",user) as jumphost:
+            if args.csv:
+                for olt, ports in olt_list.items():
+                    with calix_session(jumphost,olt) as s:
+                        for port in ports:
+                            print(run_cmd(f"show ont on-gpon-port {port}",s))
             with calix_session(jumphost,olt) as s:
                 if args.get_gpon:
                     print(pon_port_info(s,g_uid))
@@ -63,8 +90,6 @@ def main(argv=None):
                     print(run_cmd(cmd,s))
                 if args.tech_support:
                     tech_support(s,t_uid)
-
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

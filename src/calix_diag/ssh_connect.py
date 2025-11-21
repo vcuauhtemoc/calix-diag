@@ -23,7 +23,7 @@ def jump_session(jumphost: str,user: str):
         log.debug("Logging out of OLT...")
         for _ in range(3):
             s.sendline("")  
-            idx = s.expect([JUMP_PROMPT, CALIX_PROMPT, PAGER], timeout=3)
+            idx = s.expect([JUMP_PROMPT, CALIX_PROMPT, PAGER], timeout=5)
             if idx == 0:      # At jumphost prompt
                 log.debug("logged out.")
                 break
@@ -34,8 +34,9 @@ def jump_session(jumphost: str,user: str):
             else:
                 s.sendline("exit")
 
+
 @contextmanager
-def calix_session(cx_prompt: pxssh.pxssh,t_host: str):
+def calix_session(cx_prompt: pexpect.spawn,t_host: str,is_jump = False):
     log.debug(f"logging into {t_host}...")
     cx_prompt.sendline(f"logmein {t_host}\n")
     session = cx_prompt.expect([CALIX_PROMPT,HOSTKEY_CHECK],timeout=5)
@@ -56,7 +57,7 @@ def calix_session(cx_prompt: pxssh.pxssh,t_host: str):
             if idx == 2:
                 cx_prompt.send(" ")
 
-def run_cmd(cmd:str,interact:pxssh.pxssh,cmd_timeout=10) -> str:
+def run_cmd(cmd:str,interact:pexpect.spawn,cmd_timeout=10) -> str:
     result = ""
     interact.send("\r\n")
     is_prompt = interact.expect(CALIX_PROMPT, timeout=10)
@@ -79,7 +80,7 @@ def run_cmd(cmd:str,interact:pxssh.pxssh,cmd_timeout=10) -> str:
     return result
 
 
-def pon_port_info(interact:pxssh.pxssh,uid):
+def pon_port_info(interact:pexpect.spawn,uid):
     pon_pattern = re.compile(r"PON port\s+:\s+(\d+\/\d+)\s*$",re.MULTILINE)
     detail_output = run_cmd(f"show ont {uid} detail", interact)
     log.debug(f"ONU detail output: {detail_output}")
@@ -88,7 +89,7 @@ def pon_port_info(interact:pxssh.pxssh,uid):
         raise ValueError(f"PON port not found in output for uid={uid}")
     return run_cmd(f"show ont on-gpon-port {pon.group(1)} real-time-data",interact,cmd_timeout=20)
 
-def tech_support(interact:pxssh.pxssh,uid):
+def tech_support(interact:pexpect.spawn,uid):
     diag_cmds = [
         f"show ont {uid}",
         f"show ont {uid} detail",

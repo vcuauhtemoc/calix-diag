@@ -1,6 +1,6 @@
 [project]
 name = "calix-diag"
-version = "0.1.5"
+version = "0.1.7"
 description = ""
 authors = [
     {name = "Your Name",email = "you@example.com"}
